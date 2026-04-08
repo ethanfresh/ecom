@@ -5,12 +5,16 @@ from urllib.parse import urljoin, urlparse
 
 import gspread
 import requests
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 
+load_dotenv()
 
-GOOGLE_SHEET_ID = "1slQi497BwFy-6FR72mU_7dSjyPlatYM7R6_7NqPDLxw"
-GOOGLE_WORKSHEET_NAME = "shopify_brands_meta"
-GOOGLE_CREDS_FILE = os.path.join(os.path.dirname(__file__), "creds.json")
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+GOOGLE_WORKSHEET_NAME = os.getenv("GOOGLE_WORKSHEET_NAME", "shopify_brands_meta")
+GOOGLE_CREDS_FILE = os.getenv(
+    "GOOGLE_CREDS_FILE", os.path.join(os.path.dirname(__file__), "creds.json")
+)
 URL_COLUMN_INDEX = 2
 SUBSCRIPTION_MODEL_COLUMN_INDEX = 8  # Column H
 
@@ -95,6 +99,9 @@ def extract_domain(url):
 
 
 def get_sheet_client():
+    if not GOOGLE_SHEET_ID:
+        raise ValueError("Missing GOOGLE_SHEET_ID environment variable")
+
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",

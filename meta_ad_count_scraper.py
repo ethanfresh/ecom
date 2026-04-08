@@ -4,13 +4,17 @@ import re
 from urllib.parse import quote_plus
 
 import gspread
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 from playwright.sync_api import sync_playwright
 
+load_dotenv()
 
-GOOGLE_SHEET_ID = "1slQi497BwFy-6FR72mU_7dSjyPlatYM7R6_7NqPDLxw"
-GOOGLE_WORKSHEET_NAME = "shopify_brands_meta"
-GOOGLE_CREDS_FILE = os.path.join(os.path.dirname(__file__), "creds.json")
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+GOOGLE_WORKSHEET_NAME = os.getenv("GOOGLE_WORKSHEET_NAME", "shopify_brands_meta")
+GOOGLE_CREDS_FILE = os.getenv(
+    "GOOGLE_CREDS_FILE", os.path.join(os.path.dirname(__file__), "creds.json")
+)
 
 # Sheet columns (1-based)
 BRAND_COLUMN_INDEX = 1  # Column A
@@ -25,6 +29,9 @@ LIBRARY_ID_PATTERN = re.compile(r"Library ID\s*:?\s*(\d+)", re.IGNORECASE)
 
 
 def get_sheet_client():
+    if not GOOGLE_SHEET_ID:
+        raise ValueError("Missing GOOGLE_SHEET_ID environment variable")
+
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",

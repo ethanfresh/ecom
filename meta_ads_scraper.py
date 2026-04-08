@@ -6,20 +6,25 @@ import traceback
 import gspread
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 from playwright.sync_api import sync_playwright
 from urllib.parse import urlparse
 
+load_dotenv()
+
 SEARCH_TERM = "free shipping"
-SERPER_API_KEY = "44c8d45804c261512f7d99af8e5203d5e6626d3e"
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 BLOCKED_DOMAIN_HINTS = ["instagram", "facebook", "amazon", "tiktok"]
 JUNK_BRAND_WORDS = {"official", "store", "shop", "us", "inc"}
 DEFAULT_HEADERS = {"User-Agent": "Mozilla/5.0"}
 session = requests.Session()
-GOOGLE_SHEET_ID = "1slQi497BwFy-6FR72mU_7dSjyPlatYM7R6_7NqPDLxw"
-GOOGLE_WORKSHEET_NAME = "shopify_brands_meta"
-BLACKLIST_WORKSHEET_NAME = "brand_blacklist"
-GOOGLE_CREDS_FILE = os.path.join(os.path.dirname(__file__), "creds.json")
+GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+GOOGLE_WORKSHEET_NAME = os.getenv("GOOGLE_WORKSHEET_NAME", "shopify_brands_meta")
+BLACKLIST_WORKSHEET_NAME = os.getenv("BLACKLIST_WORKSHEET_NAME", "brand_blacklist")
+GOOGLE_CREDS_FILE = os.getenv(
+    "GOOGLE_CREDS_FILE", os.path.join(os.path.dirname(__file__), "creds.json")
+)
 SHEET_URL_COLUMN_INDEX = 2  # Column B
 
 
@@ -40,6 +45,9 @@ def normalize_brand_name(brand_name):
 
 
 def get_sheet_client():
+    if not GOOGLE_SHEET_ID:
+        raise ValueError("Missing GOOGLE_SHEET_ID environment variable")
+
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
@@ -51,6 +59,9 @@ def get_sheet_client():
 
 
 def get_blacklist_urls():
+    if not GOOGLE_SHEET_ID:
+        return set()
+
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",

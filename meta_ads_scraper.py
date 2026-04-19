@@ -16,6 +16,7 @@ load_dotenv()
 SEARCH_TERM = "free shipping"
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 BLOCKED_DOMAIN_HINTS = ["instagram", "facebook", "amazon", "tiktok"]
+BLOCKED_DOMAIN_SUFFIXES = [".in", ".uk"]
 JUNK_BRAND_WORDS = {"official", "store", "shop", "us", "inc"}
 DEFAULT_HEADERS = {"User-Agent": "Mozilla/5.0"}
 session = requests.Session()
@@ -42,6 +43,17 @@ def normalize_brand_name(brand_name):
     if not brand_name:
         return None
     return " ".join(brand_name.strip().lower().split())
+
+
+def is_blacklisted_url(url, blacklist_urls=None):
+    normalized = normalize_url(url)
+    if not normalized:
+        return False
+
+    if blacklist_urls and normalized in blacklist_urls:
+        return True
+
+    return any(normalized.endswith(suffix) for suffix in BLOCKED_DOMAIN_SUFFIXES)
 
 
 def get_sheet_client():
@@ -138,7 +150,7 @@ def upsert_records_to_google_sheet(records, sheet, url_index, brand_index, next_
         normalized_url = normalize_url(new_row[1])
         if not normalized_url:
             continue
-        if normalized_url in blacklist_urls:
+        if is_blacklisted_url(normalized_url, blacklist_urls):
             continue
 
         existing = url_index.get(normalized_url)
@@ -376,7 +388,7 @@ def process_brand(brand, seen_domains, seen_domains_lock, blacklist_urls):
     if not domain:
         return None
 
-    if normalize_url(domain) in blacklist_urls:
+    if is_blacklisted_url(domain, blacklist_urls):
         return None
 
     if not is_shopify_store(domain):
